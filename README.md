@@ -30,27 +30,32 @@ While most developers consume Dependency Injection (DI) as a black box, Lifecycl
 
 ---
 
+
 ## 🏗️ Architecture Overview
 
-LifecycleX implements the core Container/Provider pattern using a strictly decoupled architecture. The system is designed to handle resolution depth without recursion limits (stack overflow protection) and strictly enforces lifetime boundaries.
+LifecycleX implements the core Container/Provider pattern using a strictly decoupled architecture. The system treats dependencies as a **Directed Acyclic Graph (DAG)**, managing resolution depth and strictly enforcing lifetime boundaries.
 
-```mermaid
-graph TD
-    subgraph "Registration Phase"
-        A[ServiceCollection] -->|Register| B(ServiceDescriptor)
-        B -->|Store| C{ServiceRegistry}
-    end
-
-    subgraph "Resolution Phase"
-        D[Client Request] -->|GetRequiredService| E[ServiceProvider]
-        E -->|Lookup| C
-        E -->|Check Cache| F{Lifetime Manager}
-        F -- Singleton/Scoped --> G[Instance Cache]
-        F -- Transient --> H[Constructor Injector]
-    end
-
-    subgraph "Lifecycle Management"
-        H -->|Instantiate| I[New Object]
-        I -->|Track Disposable| J[Dispose Bucket]
-        scope[Scope Context] -.->|Owns| J
-    end
+```text
+  REGISTRATION PHASE                     RESOLUTION PHASE
+  ┌─────────────────┐                  ┌──────────────────┐
+  │ ServiceCollection │                  │  Client Request  │
+  └────────┬────────┘                  └─────────┬────────┘
+           │ Register                            │ GetRequiredService
+           ▼                                     ▼
+  ┌─────────────────┐                  ┌──────────────────┐
+  │ ServiceRegistry │ <─────────────── │ ServiceProvider  │
+  └─────────────────┘      Lookup      └─────────┬────────┘
+                                                 │
+                                       ┌─────────┴─────────┐
+                                       ▼                   ▼
+                            ┌──────────────────┐   ┌────────────────┐
+                            │ Lifetime Manager │   │ Constructor    │
+                            └────────┬─────────┘   │    Injector    │
+                                     │             └───────┬────────┘
+                  ┌──────────────────┼──────────────────┐  │
+                  ▼                  ▼                  ▼  ▼
+          ┌──────────────┐   ┌──────────────┐    ┌────────────┐
+          │   Scoped     │   │  Singleton   │    │ Transient  │
+          │    Cache     │   │    Cache     │    │ (No Cache) │
+          └──────────────┘   └──────────────┘    └────────────┘
+          
