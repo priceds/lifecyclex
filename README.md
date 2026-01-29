@@ -1,80 +1,56 @@
 <div align="center">
 
 # ⚙️ LifecycleX
+### High-Fidelity IoC Container & Dependency Injection System
 
-### A Modern IoC / Dependency Injection Container for .NET 10  
-**Built from scratch to understand lifetimes, scopes, and resolution — deeply.**
-
-<img src="https://readme-typing-svg.herokuapp.com?font=Inter&size=22&duration=2800&pause=900&center=true&vCenter=true&width=700&lines=Dependency+Injection%2C+demystified.;From+first+principles%2C+not+magic.;Learning+systems+by+building+them." />
+<img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=22&duration=3000&pause=1000&center=true&vCenter=true&width=700&lines=Zero+Magic.+Pure+Architecture.;Implemented+in+.NET+10.;From+First+Principles." />
 
 <br/>
 
-![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
-![C#](https://img.shields.io/badge/C%23-Modern-239120?style=for-the-badge&logo=csharp&logoColor=white)
-![Architecture](https://img.shields.io/badge/Focus-Architecture-black?style=for-the-badge)
+[![.NET 10](https://img.shields.io/badge/.NET%2010-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![Architecture](https://img.shields.io/badge/Pattern-Inversion_of_Control-black?style=for-the-badge&logo=uml&logoColor=white)](https://martinfowler.com/articles/injection.html)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+
+<br/>
+
+> **"You don't truly understand an abstraction until you can rebuild it from scratch."**
 
 </div>
 
 ---
 
-## 🧠 What is LifecycleX?
+## 🏛️ System Design Philosophy
 
-**LifecycleX** is a learning-first, architecture-grade **IoC / Dependency Injection container** implemented in **.NET 10**, designed to explore *how DI actually works* — not just how to use it.
+**LifecycleX** is not just another wrapper. It is an architectural study in **Life-cycle Management** and **Object Graph Resolution**, built on the bleeding edge of **.NET 10**.
 
-This is not a wrapper.  
-This is not a shortcut.  
-This is **DI built from first principles**.
-
----
-
-## 🎯 Why LifecycleX Exists
-
-Most developers *use* dependency injection.  
-Fewer can explain:
-
-- how lifetimes are enforced
-- how scopes isolate instances
-- how constructors are selected
-- how disposables are tracked
-- why captive dependencies are dangerous
-
-LifecycleX exists to **answer those questions in code**.
+While most developers consume Dependency Injection (DI) as a black box, LifecycleX peers inside to solve the hard problems:
+1.  **Memory Management:** Preventing scope leakage and ensuring deterministic disposal.
+2.  **Graph Theory:** Resolving complex dependency chains (DAGs) and detecting circular references.
+3.  **Reflection & Performance:** Efficient constructor selection strategies.
 
 ---
 
-## ✨ Core Capabilities
+## 🏗️ Architecture Overview
 
-### 🔁 Lifetimes (Aligned with .NET DI)
-- **Transient** — new instance every resolution
-- **Scoped** — one instance per logical scope
-- **Singleton** — one instance for container lifetime
+LifecycleX implements the core Container/Provider pattern using a strictly decoupled architecture. The system is designed to handle resolution depth without recursion limits (stack overflow protection) and strictly enforces lifetime boundaries.
 
-### 🧩 Registrations & Resolution
-- Constructor injection (greedy strategy)
-- Factory delegates (`Func<T>`)
-- Instance registrations
-- Open generics (`IRepository<T> → Repository<T>`)
-- `IEnumerable<T>` resolution
-- Circular dependency detection
+```mermaid
+graph TD
+    subgraph "Registration Phase"
+        A[ServiceCollection] -->|Register| B(ServiceDescriptor)
+        B -->|Store| C{ServiceRegistry}
+    end
 
-### 🧼 Scope & Disposal
-- Explicit scope creation (`CreateScope`)
-- Deterministic disposal of scoped services
-- Supports `IDisposable` and `IAsyncDisposable`
-- No scope leakage by design
+    subgraph "Resolution Phase"
+        D[Client Request] -->|GetRequiredService| E[ServiceProvider]
+        E -->|Lookup| C
+        E -->|Check Cache| F{Lifetime Manager}
+        F -- Singleton/Scoped --> G[Instance Cache]
+        F -- Transient --> H[Constructor Injector]
+    end
 
----
-
-## 🚀 Minimal Usage
-
-```csharp
-var services = new ServiceCollection();
-
-services.AddSingleton<IClock, SystemClock>();
-services.AddScoped<IUserRepository, UserRepository>();
-services.AddTransient<UserService>();
-
-using var provider = services.BuildServiceProvider();
-
-using var scope = provider.CreateScope();
-var service = scope.ServiceProvider.GetRequiredService<UserService>();
+    subgraph "Lifecycle Management"
+        H -->|Instantiate| I[New Object]
+        I -->|Track Disposable| J[Dispose Bucket]
+        scope[Scope Context] -.->|Owns| J
+    end
